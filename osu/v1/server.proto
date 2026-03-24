@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package connectrpc.v1;
+package osu.v1;
 
 // ============================================================================
 // Shared Types
