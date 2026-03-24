@@ -1,0 +1,628 @@
+syntax = "proto3";
+
+package connectrpc.v1;
+
+// ============================================================================
+// Shared Types
+// ============================================================================
+
+message Message {
+  string sender    = 1;
+  string text      = 2;
+  string recipient = 3;
+  int32  sender_id = 4;
+}
+
+message ScoreFrame {
+  int32  time          = 1;
+  uint32 id            = 2;
+  uint32 num300        = 3;
+  uint32 num100        = 4;
+  uint32 num50         = 5;
+  uint32 num_geki      = 6;
+  uint32 num_katu      = 7;
+  uint32 num_miss      = 8;
+  int32  total_score   = 9;
+  uint32 max_combo     = 10;
+  uint32 current_combo = 11;
+  bool   perfect       = 12;
+  uint32 current_hp    = 13;
+  uint32 tag_byte      = 14;
+  bool   score_v2      = 15;
+  double combo_portion = 16; // if ScoreV2
+  double bonus_portion = 17; // if ScoreV2
+}
+
+message ReplayFrame {
+  uint32 button_state = 1;
+  uint32 taiko_byte   = 2;
+  float  x            = 3;
+  float  y            = 4;
+  int32  time         = 5;
+}
+
+enum ReplayAction {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  REPLAY_ACTION_STANDARD       = 0;
+  REPLAY_ACTION_NEW_SONG       = 1;
+  REPLAY_ACTION_SKIP           = 2;
+  REPLAY_ACTION_COMPLETION     = 3;
+  REPLAY_ACTION_FAIL           = 4;
+  REPLAY_ACTION_PAUSE          = 5;
+  REPLAY_ACTION_UNPAUSE        = 6;
+  REPLAY_ACTION_SONG_SELECT    = 7;
+  REPLAY_ACTION_WATCHING_OTHER = 8;
+}
+
+message ReplayFrameBundle {
+  int32                extra       = 1;
+  repeated ReplayFrame frames      = 2;
+  ReplayAction         action      = 3;
+  ScoreFrame           score_frame = 4;
+  uint32               sequence    = 5;
+  bytes                raw_data    = 6;
+}
+
+message ChangeAction {
+  StableClientAction action    = 1;
+  string             info_text = 2;
+  string             map_md5   = 3;
+  uint32             mods      = 4;
+  uint32             mode      = 5;
+  int32              map_id    = 6;
+}
+
+message MultiplayerMatch {
+  int32          id            = 1;
+  bool           in_progress   = 2;
+  int32          powerplay     = 3;
+  int32          mods          = 4;
+  string         name          = 5;
+  string         password      = 6;
+  string         map_name      = 7;
+  int32          map_id        = 8;
+  string         map_md5       = 9;
+  repeated int32 slot_statuses = 10; // 16 slots
+  repeated int32 slot_teams    = 11; // 16 slots
+  repeated int32 slot_ids      = 12; // player IDs in slots
+  int32          host_id       = 13;
+  int32          mode          = 14;
+  int32          win_condition = 15;
+  int32          team_type     = 16;
+  bool           freemods      = 17;
+  repeated int32 slot_mods     = 18; // if freemods
+  int32          seed          = 19;
+}
+
+message Channel {
+  string name    = 1;
+  string topic   = 2;
+  int32  players = 3;
+}
+
+message UserStats {
+  int32              user_id      = 1;
+  StableClientAction action       = 2; // u8
+  string             info_text    = 3;
+  string             map_md5      = 4;
+  int32              mods         = 5;
+  uint32             mode         = 6; // u8
+  int32              map_id       = 7;
+  int64              ranked_score = 8;
+  float              accuracy     = 9; // 0.0-1.0
+  int32              plays        = 10;
+  int64              total_score  = 11;
+  int32              global_rank  = 12;
+  uint32             pp           = 13; // u16
+}
+
+message UserPresence {
+  int32  user_id      = 1;
+  string name         = 2;
+  int32  utc_offset   = 3; // signed
+  uint32 country_code = 4; // u8
+  int32  privileges   = 5;
+  uint32 mode         = 6; // u8
+  float  longitude    = 7;
+  float  latitude     = 8;
+  int32  global_rank  = 9;
+}
+// ============================================================================
+// C2S Streaming Definition
+// ============================================================================
+
+// Full structured S2C definitions
+
+message C2SLogout { int32 user_id = 1; }
+
+message C2SUpdatePresence { ChangeAction action = 1; }
+
+message C2SSendMessage { Message message = 1; }
+
+message C2SJoinChannel { string channel_name = 1; }
+
+message C2SLeaveChannel { string channel_name = 1; }
+
+message C2SAddFriend { int32 target_user_id = 1; }
+
+message C2SRemoveFriend { int32 target_user_id = 1; }
+
+message C2SJoinLobby {}
+
+message C2SPartLobby {}
+
+message C2SCreateMatch { MultiplayerMatch match = 1; }
+
+message C2SJoinMatch { int32 match_id = 1; string password = 2; }
+
+message C2SLeaveMatch {}
+
+message C2SChangeSlot { int32 slot_id = 1; }
+
+message C2SMatchReady {}
+
+message C2SMatchNotReady {}
+
+message C2SLockSlot { int32 slot_id = 1; }
+
+message C2SChangeSettings { MultiplayerMatch match = 1; }
+
+message C2SMatchStart {}
+
+message C2SUpdateScore { ScoreFrame frame = 1; }
+
+message C2SMatchComplete {}
+
+message C2SChangeMods { int32 mods = 1; }
+
+message C2SLoadComplete {}
+
+message C2SNoBeatmap {}
+
+message C2SHasBeatmap {}
+
+message C2SSkipRequest {}
+
+message C2STransferHost { int32 target_slot_id = 1; }
+
+message C2SChangeTeam {}
+
+message C2SMatchInvite { int32 target_user_id = 1; }
+
+message C2SChangePassword { string new_password = 1; }
+
+message C2SMatchFailed {}
+
+message C2SStartSpectating { int32 target_user_id = 1; }
+
+message C2SStopSpectating {}
+
+message C2SSendFrames { ReplayFrameBundle frames = 1; }
+
+message C2SCantSpectate {}
+
+message C2SRequestStatus {}
+
+message C2SPing {}
+
+message C2SUpdatePresenceFilter { PresenceFilter presence_filter = 1; }
+
+message C2SSetAwayMessage { string message = 1; }
+
+message C2SUserStatsRequest { repeated int32 user_ids = 1; }
+
+message C2SUserPresenceRequest { repeated int32 user_ids = 1; }
+
+message C2SUserPresenceRequestAll {}
+
+message C2SToggleBlockNonFriendDMs { bool blocked = 1; }
+
+message C2SBeatmapInfoRequest { repeated string beatmap_filenames = 1; }
+
+message C2SErrorReport { string error_message = 1; }
+
+message C2STournamentMatchInfoRequest { int32 match_id = 1; }
+
+message C2STournamentJoinMatchChannel { int32 match_id = 1; }
+
+message C2STournamentLeaveMatchChannel { int32 match_id = 1; }
+
+// Full C2S envelope
+message C2SEnvelopeTS {
+  string router_id = 1;
+  int64  timestamp = 2;
+  string session   = 3;
+  string scope     = 4;
+  oneof payload {
+    C2SLogout                      logout                         = 10;
+    C2SUpdatePresence              update_presence                = 11;
+    C2SSendMessage                 send_message                   = 12;
+    C2SJoinChannel                 join_channel                   = 13;
+    C2SLeaveChannel                leave_channel                  = 14;
+    C2SAddFriend                   add_friend                     = 15;
+    C2SRemoveFriend                remove_friend                  = 16;
+    C2SRequestStatus               request_status                 = 44;
+    C2SPing                        ping                           = 45;
+    C2SUpdatePresenceFilter        update_presence_filter         = 46;
+    C2SSetAwayMessage              set_away_message               = 47;
+    C2SUserStatsRequest            user_stats_request             = 48;
+    C2SUserPresenceRequest         user_presence_request          = 49;
+    C2SUserPresenceRequestAll      user_presence_request_all      = 50;
+    C2SToggleBlockNonFriendDMs     toggle_block_non_friend_dms    = 51;
+    C2SBeatmapInfoRequest          beatmap_info_request           = 52;
+    C2SErrorReport                 error_report                   = 53;
+    C2STournamentMatchInfoRequest  tournament_match_info_request  = 54;
+    C2STournamentJoinMatchChannel  tournament_join_match_channel  = 55;
+    C2STournamentLeaveMatchChannel tournament_leave_match_channel = 56;
+  }
+}
+
+message C2SEnvelopeGo {
+  string router_id = 1;
+  int64  timestamp = 2;
+  string session   = 3;
+  string scope     = 4;
+  oneof payload {
+    C2SJoinLobby       join_lobby       = 17;
+    C2SPartLobby       part_lobby       = 18;
+    C2SCreateMatch     create_match     = 19;
+    C2SJoinMatch       join_match       = 20;
+    C2SLeaveMatch      leave_match      = 21;
+    C2SChangeSlot      change_slot      = 22;
+    C2SMatchReady      match_ready      = 23;
+    C2SMatchNotReady   match_not_ready  = 24;
+    C2SLockSlot        lock_slot        = 25;
+    C2SChangeSettings  change_settings  = 26;
+    C2SMatchStart      match_start      = 27;
+    C2SUpdateScore     update_score     = 28;
+    C2SMatchComplete   match_complete   = 29;
+    C2SChangeMods      change_mods      = 30;
+    C2SLoadComplete    load_complete    = 31;
+    C2SNoBeatmap       no_beatmap       = 32;
+    C2SHasBeatmap      has_beatmap      = 33;
+    C2SSkipRequest     skip_request     = 34;
+    C2STransferHost    transfer_host    = 35;
+    C2SChangeTeam      change_team      = 36;
+    C2SMatchInvite     match_invite     = 37;
+    C2SChangePassword  change_password  = 38;
+    C2SMatchFailed     match_failed     = 39;
+    C2SStartSpectating start_spectating = 40;
+    C2SStopSpectating  stop_spectating  = 41;
+    C2SSendFrames      send_frames      = 42;
+    C2SCantSpectate    cant_spectate    = 43;
+  }
+}
+// ============================================================================
+// S2C Streaming Definition
+// ============================================================================
+
+// Full structured S2C definitions
+message S2CUserId { int32 user_id = 1; }
+
+message S2CSendMessage {
+  Message message = 1;
+  // exclude sender from scope to avoid repeated message;
+  optional string sender_session = 2;
+}
+
+message S2CPong {}
+
+message S2CIrcChangeUsername { string text = 1; }
+
+message S2CIrcQuit { int32 user_id = 1; }
+
+message S2CUserStats { UserStats stats = 1; }
+
+message S2CUserLogout { int32 user_id = 1; }
+
+message S2CSpectatorJoined { int32 user_id = 1; }
+
+message S2CSpectatorLeft { int32 user_id = 1; }
+
+message S2CSpectateFrames { bytes raw_data = 1; }
+
+message S2CVersionUpdate {}
+
+message S2CSpectatorCantSpectate { int32 user_id = 1; }
+
+message S2CGetAttention {}
+
+message S2CNotification { string message = 1; }
+
+message S2CUpdateMatch { MultiplayerMatch match = 1; bool include_password = 2; }
+
+message S2CNewMatch { MultiplayerMatch match = 1; }
+
+message S2CDisposeMatch { int32 match_id = 1; }
+
+message S2CToggleBlockNonFriendDMs {}
+
+message S2CMatchJoinSuccess { MultiplayerMatch match = 1; }
+
+message S2CMatchJoinFail {}
+
+message S2CFellowSpectatorJoined { int32 user_id = 1; }
+
+message S2CFellowSpectatorLeft { int32 user_id = 1; }
+
+message S2CAllPlayersLoaded {}
+
+message S2CMatchStart { MultiplayerMatch match = 1; }
+
+message S2CMatchScoreUpdate { ScoreFrame frame = 1; }
+
+message S2CMatchTransferHost {}
+
+message S2CMatchAllPlayersLoaded {}
+
+message S2CMatchPlayerFailed { int32 slot_id = 1; }
+
+message S2CMatchComplete {}
+
+message S2CMatchSkip {}
+
+message S2CChannelJoinSuccess { string name = 1; }
+
+message S2CChannelInfo { Channel channel = 1; }
+
+message S2CChannelKick { string name = 1; }
+
+message S2CChannelAutoJoin { Channel channel = 1; }
+
+message S2CPrivileges { int32 privileges = 1; }
+
+message S2CFriendsList { repeated int32 user_ids = 1; }
+
+message S2CProtocolVersion { int32 version = 1; }
+
+message S2CMainMenuIcon { string icon_url = 1; string onclick_url = 2; }
+
+message S2CMatchPlayerSkipped { int32 user_id = 1; }
+
+message S2CUserPresence { UserPresence presence = 1; }
+
+message S2CRestart { int32 milliseconds = 1; }
+
+message S2CMatchInvite { Message message = 1; }
+
+message S2CChannelInfoEnd {}
+
+message S2CMatchChangePassword { string new_password = 1; }
+
+message S2CSilenceEnd { int32 delta = 1; }
+
+message S2CUserSilenced { int32 user_id = 1; }
+
+message S2CUserPresenceSingle { int32 user_id = 1; }
+
+message S2CUserPresenceBundle { repeated int32 user_ids = 1; }
+
+message S2CUserDMBlocked { Message message = 1; }
+
+message S2CTargetIsSilenced { Message message = 1; }
+
+message S2CVersionUpdateForced {}
+
+message S2CSwitchServer { int32 threshold = 1; }
+
+message S2CAccountRestricted {}
+
+message S2CRtx { string message = 1; }
+
+message S2CMatchAbort {}
+
+message S2CSwitchTournamentServer { string ip = 1; }
+
+message CustomStableUserStatAndPresence {
+  int32              user_id      = 1;
+  string             name         = 2;
+  StableClientAction action       = 3; // u8
+  int32              utc_offset   = 4; // signed
+  int32              privileges   = 5;
+  uint32             country_code = 6; // u8
+  float              latitude     = 7;
+  float              longitude    = 8;
+  string             info_text    = 9;
+  string             map_md5      = 10;
+  int32              mods         = 11;
+  uint32             mode         = 12; // u8
+  int32              map_id       = 13;
+  float              accuracy     = 14; // 0.0-1.0
+  int32              plays        = 15;
+  int64              ranked_score = 16;
+  int64              total_score  = 17;
+  int32              global_rank  = 18;
+  float              pp           = 19; // u16
+}
+
+// Full S2C envelope
+message S2CEnvelope {
+  string scope     = 1; // routing scope
+  int64  timestamp = 2;
+  oneof payload {
+    S2CUserId                  user_id                     = 10;
+    S2CSendMessage             send_message                = 11;
+    S2CPong                    pong                        = 12;
+    S2CIrcChangeUsername       irc_change_username         = 13;
+    S2CIrcQuit                 irc_quit                    = 14;
+    S2CUserStats               user_stats                  = 15;
+    S2CUserLogout              user_logout                 = 16;
+    S2CSpectatorJoined         spectator_joined            = 17;
+    S2CSpectatorLeft           spectator_left              = 18;
+    S2CSpectateFrames          spectate_frames             = 19;
+    S2CVersionUpdate           version_update              = 20;
+    S2CSpectatorCantSpectate   spectator_cant_spectate     = 21;
+    S2CGetAttention            get_attention               = 22;
+    S2CNotification            notification                = 23;
+    S2CUpdateMatch             update_match                = 24;
+    S2CNewMatch                new_match                   = 25;
+    S2CDisposeMatch            dispose_match               = 26;
+    S2CToggleBlockNonFriendDMs toggle_block_non_friend_dms = 27;
+    S2CMatchJoinSuccess        match_join_success          = 28;
+    S2CMatchJoinFail           match_join_fail             = 29;
+    S2CFellowSpectatorJoined   fellow_spectator_joined     = 30;
+    S2CFellowSpectatorLeft     fellow_spectator_left       = 31;
+    S2CAllPlayersLoaded        all_players_loaded          = 32;
+    S2CMatchStart              match_start                 = 33;
+    S2CMatchScoreUpdate        match_score_update          = 34;
+    S2CMatchTransferHost       match_transfer_host         = 35;
+    S2CMatchAllPlayersLoaded   match_all_players_loaded    = 36;
+    S2CMatchPlayerFailed       match_player_failed         = 37;
+    S2CMatchComplete           match_complete              = 38;
+    S2CMatchSkip               match_skip                  = 39;
+    S2CChannelJoinSuccess      channel_join_success        = 40;
+    S2CChannelInfo             channel_info                = 41;
+    S2CChannelKick             channel_kick                = 42;
+    S2CChannelAutoJoin         channel_auto_join           = 43;
+    S2CPrivileges              privileges                  = 44;
+    S2CFriendsList             friends_list                = 45;
+    S2CProtocolVersion         protocol_version            = 46;
+    S2CMainMenuIcon            main_menu_icon              = 47;
+    S2CMatchPlayerSkipped      match_player_skipped        = 48;
+    S2CUserPresence            user_presence               = 49;
+    S2CRestart                 restart                     = 50;
+    S2CMatchInvite             match_invite                = 51;
+    S2CChannelInfoEnd          channel_info_end            = 52;
+    S2CMatchChangePassword     match_change_password       = 53;
+    S2CSilenceEnd              silence_end                 = 54;
+    S2CUserSilenced            user_silenced               = 55;
+    S2CUserPresenceSingle      user_presence_single        = 56;
+    S2CUserPresenceBundle      user_presence_bundle        = 57;
+    S2CUserDMBlocked           user_dm_blocked             = 58;
+    S2CTargetIsSilenced        target_is_silenced          = 59;
+    S2CVersionUpdateForced     version_update_forced       = 60;
+    S2CSwitchServer            switch_server               = 61;
+    S2CAccountRestricted       account_restricted          = 62;
+    S2CRtx                     rtx                         = 63;
+    S2CMatchAbort              match_abort                 = 64;
+    S2CSwitchTournamentServer  switch_tournament_server    = 65;
+
+    CustomStableUserStatAndPresence custom_stable_user_stat_and_presence = 100;
+  }
+}
+// ============================================================================
+// Login Types
+// ============================================================================
+
+enum StableClientLoginStatusCode {
+  SUCCESS               = 0;
+  AUTHENTICATION_FAILED = -1;
+  OLD_CLIENT            = -2;
+  BANNED                = -3;
+  BANNED_DUPLICATE      = -4;
+  SERVER_ERROR          = -5;
+  NEEDS_SUPPORTER       = -6;
+  PASSWORD_RESET        = -7;
+  REQUIRES_VERIFICATION = -8;
+}
+
+enum StableClientPrivileges {
+  NORMAL             = 0;
+  ADMIN              = 1;
+  MODERATOR          = 2;
+  SUPPORTER          = 4;
+  NOMINATOR          = 8;
+  WHITELISTED        = 16;
+  TOURNAMENT_MANAGER = 32;
+  DONATOR            = 64;
+  ALUMNI             = 128;
+}
+
+enum StableClientAction {
+  IDLE         = 0;
+  AFK          = 1;
+  PLAYING      = 2;
+  EDITING      = 3;
+  MODDING      = 4;
+  MULTIPLAYER  = 5;
+  WATCHING     = 6;
+  UNKNOWN      = 7;
+  TESTING      = 8;
+  SUBMITTING   = 9;
+  PAUSED       = 10;
+  LOBBY        = 11;
+  MULTIPLAYING = 12;
+  OSU_DIRECT   = 13;
+}
+
+enum PresenceFilter {
+  NIL     = 0;
+  ALL     = 1;
+  FRIENDS = 2;
+}
+
+message StableClientLoginRequest {
+  string router        = 1;
+  string scope         = 2;
+  string username      = 10;
+  string password_hash = 11;
+  string osu_version   = 12;
+  int32  utc_offset    = 13;
+  bool   display_city  = 14;
+  string client_hash   = 15;
+  bool   pm_private    = 16;
+}
+
+message StableClientLoginResponse {
+  int32                                     user_id     = 1;
+  string                                    osu_token   = 2;
+  StableClientLoginStatusCode               status_code = 3;
+  optional StableClientLoginFailedResponse  failed      = 4;
+  optional StableClientLoginSucceedResponse succeed     = 5;
+}
+
+message StableClientLoginSucceedResponse {
+  repeated Channel                channel_list = 1;
+  CustomStableUserStatAndPresence stats        = 2;
+}
+
+message StableClientLoginFailedResponse {
+  string fail_message = 1;
+}
+
+message UserRoutingStateRequest {
+  string router  = 1;
+  string session = 2;
+}
+
+message UserRoutingStateResponse {
+  oneof data {
+    UserRoutingStateFailedResponse  failed  = 1;
+    UserRoutingStateSucceedResponse succeed = 2;
+  }
+}
+
+message UserRoutingStateFailedResponse {
+
+}
+
+message UserRoutingStateSucceedResponse {
+  repeated string joined_scopes = 1;
+}
+
+service TSService {
+  // Streaming for bancho protocol packets
+  rpc Up(stream C2SEnvelopeTS) returns (Empty);
+  rpc Down(ListenRequest) returns (stream S2CEnvelope);
+
+  // Client authentication
+  rpc StableClientLogin(StableClientLoginRequest) returns (StableClientLoginResponse);
+  rpc StableClientJoinLobby(Empty) returns (Empty);
+  rpc StableClientPartLobby(Empty) returns (Empty);
+  /**
+   * When router restart it will lost its routing table, request required contexts to restore state.
+   */
+  rpc RequestUserRoutingState(UserRoutingStateRequest) returns (UserRoutingStateResponse);
+}
+
+message Empty{}
+
+message ListenRequest {
+  string router = 1;
+}
+
+service GOService {
+  // Streaming for bancho protocol packets
+  rpc Up(stream C2SEnvelopeGo) returns (Empty);
+  rpc Down(ListenRequest) returns (stream S2CEnvelope);
+}
