@@ -413,6 +413,8 @@ message S2CMatchAbort {}
 
 message S2CSwitchTournamentServer { string ip = 1; }
 
+message CustomS2CMatchLeave { int32 match_id = 1; }
+
 message CustomStableUserStatAndPresence {
   int32              user_id      = 1;
   string             name         = 2;
@@ -496,6 +498,7 @@ message S2CEnvelope {
     S2CRtx                     rtx                         = 63;
     S2CMatchAbort              match_abort                 = 64;
     S2CSwitchTournamentServer  switch_tournament_server    = 65;
+    CustomS2CMatchLeave              match_leave                 = 66;
 
     CustomStableUserStatAndPresence custom_stable_user_stat_and_presence = 100;
   }
@@ -600,6 +603,12 @@ message UserRoutingStateSucceedResponse {
   repeated string joined_scopes = 1;
 }
 
+message ServerGoUserMatchRequest {
+  string router   = 1;
+  string session  = 2;
+  int32  match_id = 3;
+}
+
 service TSService {
   // Streaming for bancho protocol packets
   rpc Up(stream C2SEnvelopeTS) returns (Empty);
@@ -607,8 +616,12 @@ service TSService {
 
   // Client authentication
   rpc StableClientLogin(StableClientLoginRequest) returns (StableClientLoginResponse);
-  rpc StableClientJoinLobby(Empty) returns (Empty);
-  rpc StableClientPartLobby(Empty) returns (Empty);
+  rpc StableClientJoinLobby(UserRoutingStateRequest) returns (Empty);
+  rpc StableClientPartLobby(UserRoutingStateRequest) returns (Empty);
+  // Called by Go server when user joins/creates a match
+  rpc ServerGoUserJoinedMatch(ServerGoUserMatchRequest) returns (Empty);
+  // Called by Go server when user leaves a match
+  rpc ServerGoUserLeftMatch(ServerGoUserMatchRequest) returns (Empty);
   /**
    * When router restart it will lost its routing table, request required contexts to restore state.
    */
