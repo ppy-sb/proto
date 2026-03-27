@@ -498,9 +498,9 @@ message S2CEnvelope {
     S2CRtx                     rtx                         = 63;
     S2CMatchAbort              match_abort                 = 64;
     S2CSwitchTournamentServer  switch_tournament_server    = 65;
-    CustomS2CMatchLeave              match_leave                 = 66;
 
     CustomStableUserStatAndPresence custom_stable_user_stat_and_presence = 100;
+    CustomS2CMatchLeave             match_leave                          = 101;
   }
 }
 // ============================================================================
