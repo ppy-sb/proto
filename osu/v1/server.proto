@@ -415,6 +415,10 @@ message S2CSwitchTournamentServer { string ip = 1; }
 
 message CustomS2CMatchLeave { int32 match_id = 1; }
 
+message CustomS2CSpectateStart { int32 host_user_id = 1; }
+
+message CustomS2CSpectateStop { int32 host_user_id = 1; }
+
 message CustomStableUserStatAndPresence {
   int32              user_id      = 1;
   string             name         = 2;
@@ -501,6 +505,8 @@ message S2CEnvelope {
 
     CustomStableUserStatAndPresence custom_stable_user_stat_and_presence = 100;
     CustomS2CMatchLeave             match_leave                          = 101;
+    CustomS2CSpectateStart          spectate_start                       = 102;
+    CustomS2CSpectateStop           spectate_stop                        = 103;
   }
 }
 // ============================================================================
@@ -609,6 +615,12 @@ message ServerGoUserMatchRequest {
   int32  match_id = 3;
 }
 
+message ServerGoSpectatorRequest {
+  string router       = 1;
+  string session      = 2;
+  int32  host_user_id = 3;
+}
+
 service TSService {
   // Streaming for bancho protocol packets
   rpc Up(stream C2SEnvelopeTS) returns (Empty);
@@ -622,6 +634,10 @@ service TSService {
   rpc ServerGoUserJoinedMatch(ServerGoUserMatchRequest) returns (Empty);
   // Called by Go server when user leaves a match
   rpc ServerGoUserLeftMatch(ServerGoUserMatchRequest) returns (Empty);
+  // Called by Go server when user starts spectating
+  rpc ServerGoUserStartedSpectating(ServerGoSpectatorRequest) returns (Empty);
+  // Called by Go server when user stops spectating
+  rpc ServerGoUserStoppedSpectating(ServerGoSpectatorRequest) returns (Empty);
   /**
    * When router restart it will lost its routing table, request required contexts to restore state.
    */
