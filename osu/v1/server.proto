@@ -650,8 +650,14 @@ message ListenRequest {
   string router = 1;
 }
 
+message CleanupSessionRelatedStatesRequest {
+  repeated string sessions = 1;  // list of scope/token strings
+}
+
 service GOService {
   // Streaming for bancho protocol packets
   rpc Up(stream C2SEnvelopeGo) returns (Empty);
   rpc Down(ListenRequest) returns (stream S2CEnvelope);
+  // TS is about to tear down these sessions — clean up match/spectator state Go holds.
+  rpc CleanupSessionRelatedStates(CleanupSessionRelatedStatesRequest) returns (Empty);
 }
