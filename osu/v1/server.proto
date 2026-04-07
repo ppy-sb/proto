@@ -201,6 +201,10 @@ message C2SSendFrames { ReplayFrameBundle frames = 1; }
 
 message C2SCantSpectate {}
 
+message C2SActionChanged {
+  StableClientAction action = 1;
+}
+
 message C2SRequestStatus {}
 
 message C2SPing {}
@@ -290,6 +294,7 @@ message C2SEnvelopeGo {
     C2SStopSpectating  stop_spectating  = 41;
     C2SSendFrames      send_frames      = 42;
     C2SCantSpectate    cant_spectate    = 43;
+    C2SActionChanged   action_changed   = 44;
   }
 }
 // ============================================================================
